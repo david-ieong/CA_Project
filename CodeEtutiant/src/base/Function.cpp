@@ -269,14 +269,26 @@ void Function::comput_succ_pred_BB(){
    Instruction *instr;
    int nbi;
    Operand* op;
-
+   string label;
    Basic_block *succ=NULL;
 
    int size= (int) _myBB.size(); // nombre de BB
    it=_myBB.begin();   //1er BB
    //remarque : le dernier block n'a pas de successeurs
 
-
+   while (it != null) {
+      current = *it;
+      instr = dynamic_cast<Instruction * > (current->get_end().get_line());
+      if (instr->get_prev()->is_branch()) {
+         label = instr->get_prev()->get_op1();
+         succ = find_label_BB(new OPLabel(label));
+         current->set_link_succ_pred(succ);
+      } else if (instr->get_prev()->is_cond_branch()) {
+         label = instr->get_prev()->get_op3();
+         succ = find_label_BB(new OPLabel(label));
+         current->set_link_succ_pred(succ);
+      } else
+   }
 
    //A REMPLIR
 
