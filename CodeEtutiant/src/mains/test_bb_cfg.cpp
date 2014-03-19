@@ -22,7 +22,7 @@ int main(int argc, char * argv[]){
    remove("./tmp/graph.dot");
    if (argc < 2) {
       cout << "erreur : pas de fichier assembleur en entrée" << endl;
-   }	  
+   }
    Program prog(argv[1]);
    Function* functmp;
 
@@ -37,35 +37,35 @@ int main(int argc, char * argv[]){
    cout<<"\n Calcul des fonctions des block de base et restitution\n"<<endl;
 
    prog.comput_function();
-   
+
    cout<<"nombre de fonction: "<<prog.nbr_func()<<endl;
 
    Cfg *graph;
    for (int i=0; i<prog.nbr_func(); i++){
-      
+
       functmp= prog.get_function(i);
 
       if(functmp==NULL){
 	 cout<<"null"<<endl;
 	 break;
       }
-//      functmp->restitution("tmp/test1.txt");
+   functmp->restitution("tmp/test1.txt");
       functmp->comput_basic_block();
       functmp->comput_label();
-      
+
       for(int j=0; j<functmp->nbr_BB(); j++){
 	 functmp->get_BB(j)->display();
       }
-      
+
       functmp->comput_succ_pred_BB();
-		
+
       graph =new Cfg(functmp->get_BB(0),
 			  functmp->nbr_BB());
-	
-		
+
+
       cout<<"------------Function "<< (i+1) <<"/"<<prog.nbr_func()<<" DISPLAY----------\n" <<endl;
       functmp->test();
       graph->display(NULL);
    }
-//   graph->restitution(NULL,"./tmp/graph.dot");
+ graph->restitution(NULL,"./tmp/graph.dot");
 }
