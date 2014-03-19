@@ -20,7 +20,7 @@ Node* Function::get_head(){
 }
 
 Basic_block* Function::get_firstBB(){
-   return _myBB.front();
+  return _myBB.front();
 }
 
 Node* Function::get_end(){
@@ -42,7 +42,7 @@ void Function::display(){
     }
     else element = element->get_next();
 
-    }
+  }
   cout<<"End Function\n\n"<<endl;
 
 }
@@ -147,16 +147,16 @@ Label* Function::get_label(int index){
 
 Basic_block *Function::find_label_BB(OPLabel* label){
   //Basic_block *BB = new Basic_block();
-   int size=(int)_myBB.size();
-   string str;
-   for(int i=0; i<size; i++){
-      if(get_BB(i)->is_labeled()){
+  int size=(int)_myBB.size();
+  string str;
+  for(int i=0; i<size; i++){
+    if(get_BB(i)->is_labeled()){
 
-	 str=get_BB(i)->get_head()->get_lineContent();
-	 if(!str.compare(0, (str.size()-1),label->get_op())){
-	    return get_BB(i);
-	 }
+      str=get_BB(i)->get_head()->get_lineContent();
+      if(!str.compare(0, (str.size()-1),label->get_op())){
+	return get_BB(i);
       }
+    }
   }
   return NULL;
 }
@@ -171,65 +171,66 @@ Basic_block *Function::find_label_BB(OPLabel* label){
 // par un saut et donc un label correspond correspond à une entete de BB).
 // exemple
 /*
-etiq:  <- etiquette => prochaine instruction est une entete
-   i1
-   i2
-   i3
-   saut
-   i4   <- appartient au même BB que 'saut'
-   i5   <- i5 est une entete
-   ...
+  etiq:  <- etiquette => prochaine instruction est une entete
+  i1
+  i2
+  i3
+  saut
+  i4   <- appartient au même BB que 'saut'
+  i5   <- i5 est une entete
+  ...
 
 */
 
-void Function::add_BB(Node *debut, Node* fin, int index){
-   Basic_block *b=new Basic_block();
-   b->set_head(debut);
-   b->set_end(fin);
-   b->set_index(index);
-   _myBB.push_back(b);
+void Function::add_BB(Node *debut, Node* fin, Node * branch, int index){
+  Basic_block *b=new Basic_block();
+  b->set_head(debut);
+  b->set_end(fin);
+  b->set_index(index);
+  if (branch != NULL ) {
+    b->set_branch(branch);
+  }
+  _myBB.push_back(b);
 }
 
 void Function::comput_basic_block(){
-   Node *debut, *current, *prev;
-   current=_head;
-   debut=_head;
-   prev = NULL;
-   int ind=0;
-   Line *l=NULL;
-   Instruction *i=NULL;
+  Node *debut, *current, *prev, *branch;
+  current=_head;
+  debut=_head;
+  prev = NULL;
+  int ind=0;
+  Line *l=NULL;
+  Instruction *i=NULL;
 
-   cout<< "comput BB" <<endl;
-   cout<<"head :"<<_head->get_lineContent()<<endl;
-   cout<<"tail :"<<_end->get_lineContent()<<endl;
+  cout<< "comput BB" <<endl;
+  cout<<"head :"<<_head->get_lineContent()<<endl;
+  cout<<"tail :"<<_end->get_lineContent()<<endl;
 
-   while (current != NULL) {
-      l = current->get_line();
-      if (l->isLabel()) {
-         current = current->get_next();
-         debut = current;
-      } else if (l->isInst()) {
-         i = dynamic_cast <Instruction * > (l);
-         if (i->is_cond_branch() || i->is_branch()) {
-            current = current->get_next();
-            add_BB(debut, current, ind);
-            ind ++;
-            current = current->get_next();
-            debut = current;
-         } else if (current->get_next()->get_line()->isLabel()) {
-            add_BB(debut, current, ind);
-            ind ++;
-            debut = NULL;
-         }
+  while (current != NULL && current != _end) {
+    l = current->get_line();
+    if (l->isLabel() || debut == NULL) {
+      debut = current;
+    } else if (l->isInst()) {
+      i = dynamic_cast <Instruction * > (l);
+      if (i->is_cond_branch() || i ->is_branch()) {
+         branch = current;
+         add_BB(debut, current->get_next(), branch, ind);
+         ind ++;
+         debut = NULL;
+      } else if (current->get_next()->get_line()->isLabel()) {
+         add_BB(debut, current, NULL, ind);
+         ind ++;
+         debut = NULL;
       }
-      current = current->get_next();
-   }
+    }
+    current = current->get_next();
+  }
 
-   cout<<"end comput BB"<<endl;
+  cout<<"end comput BB"<<endl;
 }
 
 int Function::nbr_BB(){
-   return _myBB.size();
+  return _myBB.size();
 }
 
 Basic_block *Function::get_BB(int index){
@@ -247,11 +248,11 @@ Basic_block *Function::get_BB(int index){
 }
 
 list<Basic_block*>::iterator Function::bb_list_begin(){
-   return _myBB.begin();
+  return _myBB.begin();
 }
 
 list<Basic_block*>::iterator Function::bb_list_end(){
-   return _myBB.end();
+  return _myBB.end();
 }
 
 /* comput_pred_succ calcule les successeurs et prédécesseur des BB, pour cela il faut commencer par les successeurs */
@@ -264,36 +265,67 @@ list<Basic_block*>::iterator Function::bb_list_end(){
 // NB : penser  utiliser la méthode set_link_succ_pred(Basic_block *) de la classe Basic_block
 void Function::comput_succ_pred_BB(){
 
-   list<Basic_block*>::iterator it, it2;
-   Basic_block *current;
-   Instruction *instr;
-   int nbi;
-   Operand* op;
-   string label;
-   Basic_block *succ=NULL;
+  list<Basic_block*>::iterator it, it2;
+  Basic_block *current;
+  Instruction *instr;
+  int nbi;
+  Operand* op;
+  string label;
+  Basic_block *succ=NULL;
+  Node *currentBranch;
+  int size= (int) _myBB.size(); // nombre de BB
+  it=_myBB.begin();   //1er BB
+  //remarque : le dernier block n'a pas de successeurs
 
-   int size= (int) _myBB.size(); // nombre de BB
-   it=_myBB.begin();   //1er BB
-   //remarque : le dernier block n'a pas de successeurs
+  for (nbi = 0; nbi < size; nbi ++) {
+    current = *it;
+    currentBranch = current->get_branch();
+    if (currentBranch != NULL) {
+      instr = dynamic_cast <Instruction *> (currentBranch->get_line());
+      if (instr->is_cond_branch()) {
+         label = instr->get_op3()->to_string();
+         succ = find_label_BB(new OPLabel(label));
+         succ->set_predecessor(current);
+         current->set_successor1 (succ);
+         succ = get_BB(nbi + 1);
+         if (succ != NULL) {
+            succ->set_predecessor(current);
+            current->set_successor2 (succ);
+         }
+      } else {
+         label = instr->get_op1()->to_string();
+         succ = find_label_BB(new OPLabel(label));
+         if (succ != NULL) {
+            succ->set_predecessor(current);
+            current->set_successor1 (succ);
+            succ = get_BB(nbi + 1);
+            if (succ != NULL) {
+               succ->set_predecessor(current);
+               current->set_successor2(succ);
+            }
+         } else {
+            succ = get_BB(nbi + 1);
+            if (succ != NULL) {
+               succ->set_predecessor(current);
+               current->set_successor1(succ);
+            }
 
-   while (it != null) {
-      current = *it;
-      instr = dynamic_cast<Instruction * > (current->get_end().get_line());
-      if (instr->get_prev()->is_branch()) {
-         label = instr->get_prev()->get_op1();
-         succ = find_label_BB(new OPLabel(label));
-         current->set_link_succ_pred(succ);
-      } else if (instr->get_prev()->is_cond_branch()) {
-         label = instr->get_prev()->get_op3();
-         succ = find_label_BB(new OPLabel(label));
-         current->set_link_succ_pred(succ);
-      } else
+         }
+      }
+   } else {
+      succ = get_BB(nbi + 1);
+      if (succ != NULL) {
+         succ->set_predecessor(current);
+         current->set_successor1(succ);
+      }
    }
-
-   //A REMPLIR
-
-
+   it ++;
+   }
 }
+
+
+
+
 
 
 
@@ -301,8 +333,8 @@ void Function::comput_succ_pred_BB(){
 /* en implementant la fonction test de la classe BB, permet de tester des choses sur tous les blocs de base d'une fonction par exemple l'affichage de tous les BB d'une fonction ou l'affichage des succ/pred des BBs comme c'est le cas -- voir la classe Basic_block et la méthode test */
 
 void Function::test(){
-   int size=(int)_myBB.size();
-   for(int i=0;i<size; i++){
+  int size=(int)_myBB.size();
+  for(int i=0;i<size; i++){
     get_BB(i)->test();
   }
 }

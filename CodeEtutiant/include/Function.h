@@ -66,7 +66,7 @@ public:
 */
 	void restitution(string const);
 
-	void add_BB(Node *, Node*, int);
+	void add_BB(Node *, Node*, Node*,  int);
 /**	\brief	Calculate the basics bolck of the function
 */
 	void comput_basic_block();
