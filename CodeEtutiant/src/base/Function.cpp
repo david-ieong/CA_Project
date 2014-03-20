@@ -299,10 +299,6 @@ void Function::comput_succ_pred_BB(){
             succ->set_predecessor(current);
             current->set_successor1 (succ);
             succ = get_BB(nbi + 1);
-            if (succ != NULL) {
-               succ->set_predecessor(current);
-               current->set_successor2(succ);
-            }
          } else {
             succ = get_BB(nbi + 1);
             if (succ != NULL) {
